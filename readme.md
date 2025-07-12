@@ -5,7 +5,7 @@ A modern web platform that enables users to exchange unused clothing through dir
 # Team members
 Kabilash S - kabilash0108@gmail.com 
 <br>
-Amit manoranjan udayar-amitmanoranjan2905@gmail.com
+Amit manoranjan udayar- amitmanoranjan2905@gmail.com
 <br>
 N S Dheepak Shakthi-nsdshakthi@gmail.com
 <br>
