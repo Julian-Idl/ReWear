@@ -75,3 +75,4 @@ tmp/
 *.backup
 *.bak
 /.github/
+/public/uploads/items

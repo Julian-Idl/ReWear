@@ -12,19 +12,20 @@ datasource db {
 
 // User model for authentication and profile
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String?
-  avatar    String?
-  phone     String?
-  bio       String?
-  points    Int      @default(100) // Starting points for new users
-  role      UserRole @default(USER)
-  verified  Boolean  @default(false)
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String
+  name          String?
+  avatar        String?
+  phone         String?
+  bio           String?
+  points        Int      @default(100) // Starting points for new users
+  role          UserRole @default(USER)
+  verified      Boolean  @default(false)
+  emailVerified DateTime?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Relations
   items           Item[]
@@ -75,7 +76,7 @@ model SwapRequest {
   id        String           @id @default(cuid())
   senderId  String
   receiverId String
-  senderItemId String
+  senderItemId String?        // Optional for point-based redemption
   receiverItemId String?      // Optional for point-based redemption
   type      SwapType
   status    SwapRequestStatus @default(PENDING)
@@ -86,7 +87,7 @@ model SwapRequest {
   // Relations
   sender      User @relation("RequestSender", fields: [senderId], references: [id], onDelete: Cascade)
   receiver    User @relation("RequestReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
-  senderItem  Item @relation("SenderItems", fields: [senderItemId], references: [id], onDelete: Cascade)
+  senderItem  Item? @relation("SenderItems", fields: [senderItemId], references: [id], onDelete: SetNull)
   receiverItem Item? @relation("ReceiverItems", fields: [receiverItemId], references: [id], onDelete: SetNull)
   messages    Message[]
 

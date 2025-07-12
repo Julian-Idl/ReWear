@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { compare } from "bcryptjs";
 import { loginSchema } from "@/lib/validations/schemas";
-import { generateToken } from "@/lib/auth";
+import { signToken } from "@/lib/jwt";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
     }
     
     // Generate token
-    const token = generateToken({
-      id: user.id,
+    const token = signToken({
+      userId: user.id,
       email: user.email,
       role: user.role,
     });

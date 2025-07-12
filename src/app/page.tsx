@@ -1,43 +1,31 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowRight, Recycle, Users, Shield, Star, Heart, TrendingUp } from "lucide-react";
 
 export default function Home() {
+  const { isAuthenticated, login } = useAuth();
+  const router = useRouter();
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/dashboard');
+    }
+  }, [isAuthenticated, router]);
+
+  // If user is authenticated, don't render the landing page
+  if (isAuthenticated) {
+    return null;
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <nav className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Recycle className="h-8 w-8 text-green-600" />
-              <span className="text-2xl font-bold text-gray-900">ReWear</span>
-            </div>
-            <div className="hidden md:flex items-center space-x-6">
-              <Link href="/browse" className="text-gray-600 hover:text-gray-900">
-                Browse
-              </Link>
-              <Link href="/how-it-works" className="text-gray-600 hover:text-gray-900">
-                How It Works
-              </Link>
-              <Link href="/about" className="text-gray-600 hover:text-gray-900">
-                About
-              </Link>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/login">
-                <Button variant="ghost">Login</Button>
-              </Link>
-              <Link href="/register">
-                <Button>Get Started</Button>
-              </Link>
-            </div>
-          </nav>
-        </div>
-      </header>
-
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-20">
         <div className="max-w-4xl mx-auto text-center">

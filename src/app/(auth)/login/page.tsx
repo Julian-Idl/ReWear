@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginFormData } from "@/lib/validations/schemas";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +19,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const { login } = useAuth();
 
   const {
     register,
@@ -43,9 +45,21 @@ export default function LoginPage() {
       const result = await response.json();
 
       if (response.ok) {
-        // Store token in localStorage (in production, consider using httpOnly cookies)
-        localStorage.setItem("token", result.token);
-        router.push("/dashboard");
+        // Use the new auth context login method
+        const success = await login(data.email, data.password);
+        if (success) {
+          // Wait a moment for auth context to update, then redirect based on role
+          setTimeout(() => {
+            const { user: authUser } = result;
+            if (authUser?.role === 'ADMIN' || authUser?.role === 'MODERATOR') {
+              router.push("/admin/dashboard");
+            } else {
+              router.push("/dashboard");
+            }
+          }, 100);
+        } else {
+          setError("Login failed");
+        }
       } else {
         setError(result.error || "Login failed");
       }
