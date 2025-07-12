@@ -73,7 +73,14 @@ export default function ItemDetailPage() {
     try {
       setIsLoading(true);
       
-      const response = await fetch(`/api/items/${params.id}`);
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(`/api/items/${params.id}`, {
+        headers
+      });
       
       if (response.ok) {
         const { item: fetchedItem } = await response.json();

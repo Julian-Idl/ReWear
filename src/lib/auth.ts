@@ -15,9 +15,9 @@ export const verifyPassword = async (
 };
 
 export const generateToken = (user: Pick<User, 'id' | 'email' | 'role'>): string => {
-  const secret = process.env.NEXTAUTH_SECRET;
+  const secret = process.env.JWT_SECRET;
   if (!secret) {
-    throw new Error('NEXTAUTH_SECRET is not defined');
+    throw new Error('JWT_SECRET is not defined');
   }
   
   return jwt.sign(
@@ -32,9 +32,9 @@ export const generateToken = (user: Pick<User, 'id' | 'email' | 'role'>): string
 };
 
 export const verifyToken = (token: string): any => {
-  const secret = process.env.NEXTAUTH_SECRET;
+  const secret = process.env.JWT_SECRET;
   if (!secret) {
-    throw new Error('NEXTAUTH_SECRET is not defined');
+    throw new Error('JWT_SECRET is not defined');
   }
   
   try {

@@ -24,6 +24,7 @@ interface UserItem {
   id: string;
   title: string;
   description: string;
+  images: string[];
   category: string;
   condition: string;
   size: string;
@@ -347,8 +348,18 @@ export default function ItemsPage() {
               {filteredItems.map((item) => (
                 <Card key={item.id} className="hover:shadow-lg transition-shadow">
                   <div className="relative">
-                    <div className="aspect-square bg-gray-200 rounded-t-lg flex items-center justify-center">
-                      <Package className="h-16 w-16 text-gray-400" />
+                    <div className="aspect-square bg-gray-200 rounded-t-lg overflow-hidden">
+                      {item.images && item.images.length > 0 ? (
+                        <img
+                          src={item.images[0]}
+                          alt={item.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Package className="h-16 w-16 text-gray-400" />
+                        </div>
+                      )}
                     </div>
                     <div className="absolute top-2 left-2">
                       <Badge className={getStatusColor(item.status)}>

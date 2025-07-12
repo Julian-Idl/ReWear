@@ -7,8 +7,12 @@ interface User {
   name: string;
   email: string;
   avatar?: string;
+  bio?: string;
+  phone?: string;
   points: number;
   role: 'USER' | 'ADMIN' | 'MODERATOR';
+  verified?: boolean;
+  createdAt?: Date;
 }
 
 interface AuthContextType {

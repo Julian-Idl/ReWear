@@ -78,6 +78,8 @@ export async function POST(request: Request) {
       );
     }
 
+    console.log('💡 Creating item with status:', process.env.NODE_ENV === 'development' ? 'APPROVED' : 'PENDING');
+
     const item = await prisma.item.create({
       data: {
         title,
@@ -93,7 +95,7 @@ export async function POST(request: Request) {
         tags: tags || [],
         pointValue: pointValue || 50,
         userId: decoded.userId,
-        status: 'PENDING', // All items start as pending for admin approval
+        status: process.env.NODE_ENV === 'development' ? 'APPROVED' : 'PENDING', // Auto-approve in development
       },
       include: {
         user: {
@@ -103,6 +105,13 @@ export async function POST(request: Request) {
           },
         },
       },
+    });
+
+    console.log('✅ Item created:', {
+      id: item.id,
+      title: item.title,
+      status: item.status,
+      userId: item.userId
     });
 
     return NextResponse.json({ item }, { status: 201 });

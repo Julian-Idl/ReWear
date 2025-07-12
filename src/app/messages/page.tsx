@@ -20,11 +20,19 @@ interface Message {
   id: string;
   content: string;
   senderId: string;
-  senderName: string;
   receiverId: string;
-  receiverName: string;
   createdAt: string;
-  isRead: boolean;
+  read: boolean;
+  sender: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  receiver: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
 }
 
 interface Conversation {
@@ -70,12 +78,12 @@ export default function MessagesPage() {
         
         messages.forEach((message: Message) => {
           const otherUserId = message.senderId === user?.id ? message.receiverId : message.senderId;
-          const otherUserName = message.senderId === user?.id ? message.receiverName : message.senderName;
+          const otherUserName = message.senderId === user?.id ? message.receiver?.name : message.sender?.name;
           
           if (!conversationMap.has(otherUserId)) {
             conversationMap.set(otherUserId, {
               userId: otherUserId,
-              userName: otherUserName,
+              userName: otherUserName || 'Unknown User',
               lastMessage: message.content,
               lastMessageTime: message.createdAt,
               unreadCount: 0,
@@ -93,7 +101,7 @@ export default function MessagesPage() {
           }
           
           // Count unread messages
-          if (message.receiverId === user?.id && !message.isRead) {
+          if (message.receiverId === user?.id && !message.read) {
             conversation.unreadCount++;
           }
         });
@@ -265,7 +273,7 @@ export default function MessagesPage() {
                         <Avatar className="h-10 w-10">
                           <AvatarImage src={conversation.userAvatar} />
                           <AvatarFallback>
-                            {conversation.userName.charAt(0).toUpperCase()}
+                            {conversation.userName ? conversation.userName.charAt(0).toUpperCase() : '?'}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
@@ -313,7 +321,7 @@ export default function MessagesPage() {
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={selectedConv.userAvatar} />
                         <AvatarFallback>
-                          {selectedConv.userName.charAt(0).toUpperCase()}
+                          {selectedConv.userName ? selectedConv.userName.charAt(0).toUpperCase() : '?'}
                         </AvatarFallback>
                       </Avatar>
                       <div>

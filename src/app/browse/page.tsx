@@ -22,6 +22,7 @@ interface Item {
   id: string;
   title: string;
   description: string;
+  images: string[];
   category: string;
   condition: string;
   size: string;
@@ -50,7 +51,10 @@ const CONDITIONS = ["All", "New", "Excellent", "Good", "Fair"];
 const SIZES = ["All", "XS", "S", "M", "L", "XL", "XXL"];
 
 export default function BrowsePage() {
-  const [items, setItems] = useState<Item[]>([]);
+  const [allItems, setAllItems] = useState<Item[]>([]);
+  const [newArrivals, setNewArrivals] = useState<Item[]>([]);
+  const [recentlyAdded, setRecentlyAdded] = useState<Item[]>([]);
+  const [popularItems, setPopularItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -59,6 +63,7 @@ export default function BrowsePage() {
   const [selectedSize, setSelectedSize] = useState("All");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
+  const [activeSection, setActiveSection] = useState<"all" | "new" | "recent" | "popular">("all");
 
   useEffect(() => {
     fetchItems();
@@ -71,16 +76,40 @@ export default function BrowsePage() {
       
       if (response.ok) {
         const { items: fetchedItems } = await response.json();
-        setItems(fetchedItems);
+        setAllItems(fetchedItems);
+        
+        // Categorize items based on creation date and other criteria
+        const now = new Date();
+        const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        
+        // New Arrivals: Items added in the last 3 days
+        const newItems = fetchedItems.filter((item: Item) => 
+          new Date(item.createdAt) >= threeDaysAgo
+        );
+        
+        // Recently Added: Items added in the last week
+        const recentItems = fetchedItems.filter((item: Item) => 
+          new Date(item.createdAt) >= oneWeekAgo
+        );
+        
+        // Popular Items: Items with high points (simulating popularity)
+        const popularItems = fetchedItems
+          .filter((item: Item) => item.points >= 30)
+          .sort((a: Item, b: Item) => b.points - a.points);
+        
+        setNewArrivals(newItems.slice(0, 12)); // Show up to 12 new arrivals
+        setRecentlyAdded(recentItems.slice(0, 12)); // Show up to 12 recent items
+        setPopularItems(popularItems.slice(0, 12)); // Show up to 12 popular items
         setFilteredItems(fetchedItems);
       } else {
         console.error('Failed to fetch items');
-        setItems([]);
+        setAllItems([]);
         setFilteredItems([]);
       }
     } catch (error) {
       console.error('Error fetching items:', error);
-      setItems([]);
+      setAllItems([]);
       setFilteredItems([]);
     } finally {
       setIsLoading(false);
@@ -88,29 +117,46 @@ export default function BrowsePage() {
   };
 
   useEffect(() => {
-    let filtered = items;
+    let currentItems = allItems;
+    
+    // Switch between different sections
+    switch (activeSection) {
+      case "new":
+        currentItems = newArrivals;
+        break;
+      case "recent":
+        currentItems = recentlyAdded;
+        break;
+      case "popular":
+        currentItems = popularItems;
+        break;
+      default:
+        currentItems = allItems;
+    }
+
+    let filtered = currentItems;
 
     if (searchQuery) {
-      filtered = filtered.filter(item =>
+      filtered = filtered.filter((item: Item) =>
         item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.description.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
     if (selectedCategory !== "All") {
-      filtered = filtered.filter(item => item.category === selectedCategory);
+      filtered = filtered.filter((item: Item) => item.category === selectedCategory);
     }
 
     if (selectedCondition !== "All") {
-      filtered = filtered.filter(item => item.condition === selectedCondition);
+      filtered = filtered.filter((item: Item) => item.condition === selectedCondition);
     }
 
     if (selectedSize !== "All") {
-      filtered = filtered.filter(item => item.size === selectedSize);
+      filtered = filtered.filter((item: Item) => item.size === selectedSize);
     }
 
     setFilteredItems(filtered);
-  }, [items, searchQuery, selectedCategory, selectedCondition, selectedSize]);
+  }, [allItems, newArrivals, recentlyAdded, popularItems, activeSection, searchQuery, selectedCategory, selectedCondition, selectedSize]);
 
   const getConditionColor = (condition: string) => {
     switch (condition) {
@@ -123,7 +169,7 @@ export default function BrowsePage() {
   };
 
   const handleLike = (itemId: string) => {
-    setItems(prev => prev.map(item => 
+    setAllItems(prev => prev.map((item: Item) => 
       item.id === itemId ? { ...item, isLiked: !item.isLiked } : item
     ));
   };
@@ -143,9 +189,58 @@ export default function BrowsePage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Browse Items</h1>
-          <p className="text-gray-600 mt-2">Discover amazing clothing items from our community</p>
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Browse Items</h1>
+            <p className="text-gray-600 mt-2">Discover amazing clothing items from our community</p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={fetchItems}
+            className="flex items-center gap-2"
+            disabled={isLoading}
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
+
+        {/* Section Navigation */}
+        <div className="mb-6">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={activeSection === "all" ? "default" : "outline"}
+              onClick={() => setActiveSection("all")}
+              className="flex items-center gap-2"
+            >
+              <Package className="h-4 w-4" />
+              All Items ({allItems.length})
+            </Button>
+            <Button
+              variant={activeSection === "new" ? "default" : "outline"}
+              onClick={() => setActiveSection("new")}
+              className="flex items-center gap-2"
+            >
+              <Star className="h-4 w-4" />
+              New Arrivals ({newArrivals.length})
+            </Button>
+            <Button
+              variant={activeSection === "recent" ? "default" : "outline"}
+              onClick={() => setActiveSection("recent")}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Recently Added ({recentlyAdded.length})
+            </Button>
+            <Button
+              variant={activeSection === "popular" ? "default" : "outline"}
+              onClick={() => setActiveSection("popular")}
+              className="flex items-center gap-2"
+            >
+              <Heart className="h-4 w-4" />
+              Popular ({popularItems.length})
+            </Button>
+          </div>
         </div>
 
         {/* Search and Filters */}
@@ -240,25 +335,72 @@ export default function BrowsePage() {
 
         {/* Results Count */}
         <div className="flex justify-between items-center mb-6">
-          <p className="text-gray-600">
-            {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''} found
-          </p>
+          <div>
+            <p className="text-gray-600">
+              {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''} found
+              {activeSection !== "all" && (
+                <span className="ml-2 text-sm text-gray-500">
+                  in {activeSection === "new" ? "New Arrivals" : 
+                       activeSection === "recent" ? "Recently Added" : 
+                       "Popular Items"}
+                </span>
+              )}
+            </p>
+            {(searchQuery || selectedCategory !== "All" || selectedCondition !== "All" || selectedSize !== "All") && (
+              <Button 
+                variant="link" 
+                className="p-0 h-auto text-sm text-blue-600"
+                onClick={() => {
+                  setSearchQuery("");
+                  setSelectedCategory("All");
+                  setSelectedCondition("All");
+                  setSelectedSize("All");
+                }}
+              >
+                Clear all filters
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Items Grid/List */}
         {filteredItems.length === 0 ? (
           <div className="text-center py-16">
             <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No items found</h3>
-            <p className="text-gray-500 mb-6">Try adjusting your search or filters</p>
-            <Button onClick={() => {
-              setSearchQuery("");
-              setSelectedCategory("All");
-              setSelectedCondition("All");
-              setSelectedSize("All");
-            }}>
-              Clear Filters
-            </Button>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {activeSection === "new" ? "No new arrivals yet" :
+               activeSection === "recent" ? "No recently added items" :
+               activeSection === "popular" ? "No popular items yet" :
+               "No items found"}
+            </h3>
+            <p className="text-gray-500 mb-6">
+              {(searchQuery || selectedCategory !== "All" || selectedCondition !== "All" || selectedSize !== "All") 
+                ? "Try adjusting your search or filters"
+                : activeSection === "new" 
+                  ? "Check back soon for new items from our community"
+                  : activeSection === "recent"
+                  ? "Items added in the last week will appear here"
+                  : activeSection === "popular"
+                  ? "Items with high point values will appear here"
+                  : "Be the first to add items to our community!"
+              }
+            </p>
+            <div className="flex gap-4 justify-center">
+              {(searchQuery || selectedCategory !== "All" || selectedCondition !== "All" || selectedSize !== "All") && (
+                <Button onClick={() => {
+                  setSearchQuery("");
+                  setSelectedCategory("All");
+                  setSelectedCondition("All");
+                  setSelectedSize("All");
+                }}>
+                  Clear Filters
+                </Button>
+              )}
+              <Button variant="outline" onClick={fetchItems}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
           </div>
         ) : (
           <div className={
@@ -272,8 +414,18 @@ export default function BrowsePage() {
                   // Grid View
                   <>
                     <div className="relative">
-                      <div className="aspect-square bg-gray-200 rounded-t-lg flex items-center justify-center">
-                        <Package className="h-16 w-16 text-gray-400" />
+                      <div className="aspect-square bg-gray-200 rounded-t-lg overflow-hidden">
+                        {item.images && item.images.length > 0 ? (
+                          <img
+                            src={item.images[0]}
+                            alt={item.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Package className="h-16 w-16 text-gray-400" />
+                          </div>
+                        )}
                       </div>
                       <Button
                         variant="ghost"
@@ -319,8 +471,18 @@ export default function BrowsePage() {
                   // List View
                   <CardContent className="p-6">
                     <div className="flex items-center space-x-6">
-                      <div className="w-24 h-24 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Package className="h-12 w-12 text-gray-400" />
+                      <div className="w-24 h-24 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                        {item.images && item.images.length > 0 ? (
+                          <img
+                            src={item.images[0]}
+                            alt={item.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Package className="h-12 w-12 text-gray-400" />
+                          </div>
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between mb-2">

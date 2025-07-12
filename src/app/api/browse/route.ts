@@ -52,11 +52,17 @@ export async function GET(request: Request) {
       },
     });
 
+    console.log('📦 Browse API found items:', {
+      count: items.length,
+      statuses: items.map(item => ({ id: item.id, status: item.status, title: item.title }))
+    });
+
     // Transform the data to match the frontend interface
     const transformedItems = items.map((item: any) => ({
       id: item.id,
       title: item.title,
       description: item.description,
+      images: item.images || [],
       category: item.category,
       condition: item.condition,
       size: item.size,

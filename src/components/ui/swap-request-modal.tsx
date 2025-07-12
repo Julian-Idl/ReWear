@@ -70,7 +70,7 @@ export default function SwapRequestModal({
     try {
       setIsLoading(true);
       
-      if (!token || !isAuthenticated) {
+      if (!token || !isAuthenticated || !user?.id) {
         toast({
           title: "Error",
           description: "You must be logged in to make swap requests",
@@ -79,7 +79,7 @@ export default function SwapRequestModal({
         return;
       }
 
-      const response = await fetch('/api/items', {
+      const response = await fetch(`/api/items?userId=${user.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -89,14 +89,25 @@ export default function SwapRequestModal({
         const { items } = await response.json();
         // Filter only available items that can be swapped
         const availableItems = items.filter((item: any) => 
-          item.status === 'approved' && item.available
+          item.status === 'APPROVED' && item.available
         );
         setUserItems(availableItems);
       } else {
-        console.error('Failed to fetch user items');
+        const errorData = await response.json();
+        console.error('Failed to fetch user items:', errorData);
+        toast({
+          title: "Error",
+          description: errorData.error || "Failed to fetch your items",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Error fetching user items:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch user items",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
