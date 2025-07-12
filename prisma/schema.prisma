@@ -1,0 +1,217 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication and profile
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  avatar    String?
+  phone     String?
+  bio       String?
+  points    Int      @default(100) // Starting points for new users
+  role      UserRole @default(USER)
+  verified  Boolean  @default(false)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  items           Item[]
+  sentRequests    SwapRequest[] @relation("RequestSender")
+  receivedRequests SwapRequest[] @relation("RequestReceiver")
+  sentMessages    Message[]     @relation("MessageSender")
+  receivedMessages Message[]    @relation("MessageReceiver")
+  pointTransactions PointTransaction[]
+  reviews         Review[]      @relation("ReviewAuthor")
+  receivedReviews Review[]      @relation("ReviewTarget")
+
+  @@map("users")
+}
+
+// Item model for clothing items
+model Item {
+  id          String      @id @default(cuid())
+  title       String
+  description String
+  images      String[]    // Array of image URLs
+  category    Category
+  subcategory String?
+  brand       String?
+  size        String
+  condition   Condition
+  color       String?
+  material    String?
+  tags        String[]    // Array of tags for searching
+  pointValue  Int         @default(50) // Points required to redeem
+  status      ItemStatus  @default(PENDING)
+  available   Boolean     @default(false) // Admin approved and available
+  featured    Boolean     @default(false)
+  userId      String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  senderSwapRequests SwapRequest[] @relation("SenderItems")
+  receiverSwapRequests SwapRequest[] @relation("ReceiverItems")
+  pointTransactions PointTransaction[]
+
+  @@map("items")
+}
+
+// Swap request model for item exchanges
+model SwapRequest {
+  id        String           @id @default(cuid())
+  senderId  String
+  receiverId String
+  senderItemId String
+  receiverItemId String?      // Optional for point-based redemption
+  type      SwapType
+  status    SwapRequestStatus @default(PENDING)
+  message   String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  // Relations
+  sender      User @relation("RequestSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver    User @relation("RequestReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  senderItem  Item @relation("SenderItems", fields: [senderItemId], references: [id], onDelete: Cascade)
+  receiverItem Item? @relation("ReceiverItems", fields: [receiverItemId], references: [id], onDelete: SetNull)
+  messages    Message[]
+
+  @@map("swap_requests")
+}
+
+// Message model for communication between users
+model Message {
+  id           String      @id @default(cuid())
+  content      String
+  senderId     String
+  receiverId   String
+  swapRequestId String?
+  read         Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+
+  // Relations
+  sender      User         @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver    User         @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  swapRequest SwapRequest? @relation(fields: [swapRequestId], references: [id], onDelete: SetNull)
+
+  @@map("messages")
+}
+
+// Point transaction model for tracking point changes
+model PointTransaction {
+  id          String              @id @default(cuid())
+  userId      String
+  itemId      String?
+  amount      Int                 // Positive for earning, negative for spending
+  type        PointTransactionType
+  description String
+  createdAt   DateTime            @default(now())
+
+  // Relations
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item Item? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+
+  @@map("point_transactions")
+}
+
+// Review model for user feedback
+model Review {
+  id         String   @id @default(cuid())
+  rating     Int      // 1-5 stars
+  comment    String?
+  authorId   String
+  targetId   String
+  createdAt  DateTime @default(now())
+
+  // Relations
+  author User @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  target User @relation("ReviewTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@map("reviews")
+}
+
+// Category model for item categorization
+model ItemCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  icon        String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@map("item_categories")
+}
+
+// Enums
+enum UserRole {
+  USER
+  ADMIN
+  MODERATOR
+}
+
+enum Category {
+  TOPS
+  BOTTOMS
+  DRESSES
+  OUTERWEAR
+  SHOES
+  ACCESSORIES
+  BAGS
+  JEWELRY
+  ACTIVEWEAR
+  FORMAL
+  CASUAL
+  VINTAGE
+  DESIGNER
+}
+
+enum Condition {
+  EXCELLENT    // Like new, no signs of wear
+  VERY_GOOD    // Minor signs of wear
+  GOOD         // Some signs of wear but still great
+  FAIR         // Noticeable wear but still functional
+  POOR         // Significant wear, may need repair
+}
+
+enum ItemStatus {
+  PENDING      // Waiting for admin approval
+  APPROVED     // Approved by admin
+  REJECTED     // Rejected by admin
+  SOLD         // Item has been exchanged/redeemed
+  REMOVED      // Removed by user or admin
+}
+
+enum SwapType {
+  DIRECT       // Item for item swap
+  POINTS       // Points for item redemption
+}
+
+enum SwapRequestStatus {
+  PENDING      // Waiting for response
+  ACCEPTED     // Accepted by receiver
+  REJECTED     // Rejected by receiver
+  COMPLETED    // Swap completed
+  CANCELLED    // Cancelled by sender
+}
+
+enum PointTransactionType {
+  EARNED_LISTING    // Points earned for listing item
+  EARNED_SWAP       // Points earned from swap
+  SPENT_REDEMPTION  // Points spent on redemption
+  BONUS             // Bonus points from admin
+  PENALTY           // Points deducted as penalty
+}
